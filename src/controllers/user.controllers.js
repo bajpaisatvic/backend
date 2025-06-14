@@ -5,6 +5,8 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { User } from "../models/user.models.js";
 import jwt from "jsonwebtoken";
 
+// delete old image of user avatar and cover
+
 const generateAccessAndRefreshToken = async (userid) => {
   try {
     const user = await User.findById(userid);
@@ -306,6 +308,75 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, user, "User coverImage updated successfully"));
 });
+
+const getUserChannel = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+  if (!username) {
+    throw new ApiError(400, "User does not exist");
+  }
+
+  const channel = await User.aggregate([
+    {
+      $match: {
+        username: username?.toLowerCase(),
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channels",
+        as: "subscribers",
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscribers",
+        as: "subscribedTo",
+      },
+    },
+    {
+      $addFields: {
+        subscriberCount: {
+          $size: "$subscribers",
+        },
+        subscribedChannels: {
+          $size: "$subscribedTo",
+        },
+        isSubscribed: {
+          $cond: {
+            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        fullname: 1,
+        username: 1,
+        subscribedChannels: 1,
+        subscriberCount: 1,
+        isSubscribed: 1,
+        avatar: 1,
+        coverimage: 1,
+      },
+    },
+  ]);
+  console.log(channel);
+
+  if (!channel) {
+    throw new ApiError(500, "something went wrong while finding the channel");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, channel[0], "channel loaded successfully"));
+});
+
 export {
   registerUser,
   userLogin,
@@ -317,4 +388,5 @@ export {
   updateUserDetails,
   updateUserAvatar,
   updateUserCoverImage,
+  getUserChannel,
 };
