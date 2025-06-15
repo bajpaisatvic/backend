@@ -8,7 +8,8 @@ import {
 } from "../utils/cloudinary.js";
 import { User } from "../models/user.models.js";
 import jwt from "jsonwebtoken";
-
+import mongoose from "mongoose";
+import { Video } from "../models/video.models.js";
 // delete old image of user avatar and cover
 
 const generateAccessAndRefreshToken = async (userid) => {
@@ -149,8 +150,8 @@ const userLogout = asyncHandler(async (req, res) => {
   const user = await User.findByIdAndUpdate(
     req.user._id,
     {
-      $set: {
-        refreshToken: undefined,
+      $unset: {
+        refreshToken: 1,
       },
     },
     {
@@ -225,9 +226,10 @@ const changeUserPassword = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Invalid Password");
   }
   user.password = newPassword;
-  const updatedUser = await user
-    .save({ validateBeforeSave: false })
-    .select("-password -refreshToken");
+  const updatedUser = await user.save({ validateBeforeSave: false });
+  // .select("-password -refreshToken"); because .save returns an document and .select only applis on query
+
+  (updatedUser.password = undefined), (updatedUser.refreshToken = undefined);
 
   if (!updatedUser) {
     throw new ApiError(500, "Something went wrong while updating password");
@@ -246,7 +248,7 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 
 const updateUserDetails = asyncHandler(async (req, res) => {
   const { email, fullname } = req.body;
-  if (!email || !fullname) {
+  if (!email && !fullname) {
     throw new ApiError(400, "Email and Fullname are required");
   }
   const user = await User.findByIdAndUpdate(
@@ -275,7 +277,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     throw new ApiError(500, "something went wrong while uploading avatar");
   }
 
-  const loggedinUser = findById(req.user._id);
+  const loggedinUser = await User.findById(req.user._id);
 
   if (loggedinUser.avatar) {
     const oldAvatarUrl = loggedinUser.avatar;
@@ -307,7 +309,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
   if (!coverImage) {
     throw new ApiError(500, "something went wrong while uploading avatar");
   }
-  const loggedinUser = findById(req.user._id);
+  const loggedinUser = await User.findById(req.user._id);
 
   if (loggedinUser.coverimage) {
     const oldAvatarUrl = loggedinUser.coverimage;
@@ -399,10 +401,10 @@ const getUserChannel = asyncHandler(async (req, res) => {
 });
 
 const getWatchHistory = asyncHandler(async (req, res) => {
-  const history = mongoose.aggregate([
+  const history = await Video.aggregate([
     {
       $match: {
-        _id: mongoose.Types.ObjectId(req.user?._id),
+        _id: new mongoose.Types.ObjectId(req.user?._id),
       },
     },
     {
@@ -440,6 +442,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
       },
     },
   ]);
+  console.log(history);
 
   return res
     .status(200)
