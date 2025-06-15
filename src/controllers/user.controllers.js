@@ -1,7 +1,11 @@
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asynchandler.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {
+  deleteFromCloudinary,
+  getCloudinaryPublicId,
+  uploadOnCloudinary,
+} from "../utils/cloudinary.js";
 import { User } from "../models/user.models.js";
 import jwt from "jsonwebtoken";
 
@@ -270,6 +274,15 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
   if (!avatar) {
     throw new ApiError(500, "something went wrong while uploading avatar");
   }
+
+  const loggedinUser = findById(req.user._id);
+
+  if (loggedinUser.avatar) {
+    const oldAvatarUrl = loggedinUser.avatar;
+    const publicId = getCloudinaryPublicId(oldAvatarUrl);
+    await deleteFromCloudinary(publicId);
+  }
+
   const user = await User.findByIdAndUpdate(
     req.user._id,
     {
@@ -294,6 +307,14 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
   if (!coverImage) {
     throw new ApiError(500, "something went wrong while uploading avatar");
   }
+  const loggedinUser = findById(req.user._id);
+
+  if (loggedinUser.coverimage) {
+    const oldAvatarUrl = loggedinUser.coverimage;
+    const publicId = getCloudinaryPublicId(oldAvatarUrl);
+    await deleteFromCloudinary(publicId);
+  }
+
   const user = await User.findByIdAndUpdate(
     req.user._id,
     {

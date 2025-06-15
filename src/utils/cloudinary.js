@@ -29,6 +29,15 @@ const uploadOnCloudinary = async (localFilePath) => {
   }
 };
 
+const getCloudinaryPublicId = (url) => {
+  const parts = url.split("/");
+  const filename = parts.pop(); // e.g. "sample_image.jpg"
+  const version = parts.pop().startsWith("v") ? parts.pop() : null; // remove v123456
+  const publicIdWithExt =
+    parts.slice(parts.indexOf("upload") + 1).join("/") + "/" + filename;
+  return publicIdWithExt.replace(/\.(jpg|jpeg|png|webp|gif)$/, "");
+};
+
 const deleteFromCloudinary = async (filelink) => {
   try {
     await cloudinary.uploader.destroy(filelink);
@@ -38,4 +47,4 @@ const deleteFromCloudinary = async (filelink) => {
   }
 };
 
-export { uploadOnCloudinary, deleteFromCloudinary };
+export { uploadOnCloudinary, deleteFromCloudinary, getCloudinaryPublicId };
