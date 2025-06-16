@@ -58,6 +58,21 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
 const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  if (!videoId) {
+    throw new ApiError(404, "videoId not found");
+  }
+  if (!mongoose.Types.ObjectId.isValid(videoId)) {
+    throw new ApiError(400, "VideoId is invalid");
+  }
+  const video = await Video.findById(videoId);
+
+  if (!video) {
+    throw new ApiError(500, "something went wrong while fetching the video");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, video, "video fetched successfully"));
   //TODO: get video by id
 });
 
