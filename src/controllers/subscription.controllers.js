@@ -12,7 +12,7 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     throw new ApiError(400, "ChannelId is invalid");
   }
   const channelObjectId = new mongoose.Types.ObjectId(channelId);
-  const subscriberObjectId = new mongoose.Types.ObjectId(channelId);
+  const subscriberObjectId = new mongoose.Types.ObjectId(subscriberId);
 
   const isSubscribed = await Subscription.exists({
     channel: channelObjectId,
@@ -90,11 +90,151 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 // controller to return subscriber list of a channel
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
   const { channelId } = req.params;
+  if (!channelId) {
+    throw new ApiError(404, "subscriberId is not found");
+  }
+  if (!mongoose.Types.ObjectId.isValid(channelId)) {
+    throw new ApiError(403, "subscriberId is not valid");
+  }
+  //   console.log("Starting aggregation pipeline");
+
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(channelId),
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "subscriber",
+              foreignField: "_id",
+              as: "subscriberInfo",
+            },
+          },
+          {
+            $unwind: "$subscriberInfo",
+          },
+          {
+            $project: {
+              _id: 0,
+              fullname: "$subscriberInfo.fullname",
+              username: "$subscriberInfo.username",
+              avatar: "$subscriberInfo.avatar",
+            },
+          },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        subscriberCount: {
+          $size: "$subscribers",
+        },
+      },
+    },
+    {
+      $project: {
+        fullname: 1,
+        username: 1,
+        avatar: 1,
+        subscribers: 1,
+        subscriberCount: 1,
+      },
+    },
+  ]);
+
+  if (!user || user.length === 0) {
+    throw new ApiError(500, "Something went wrong!");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        user[0].subscribers,
+        "SubscriberList fetched successfully!"
+      )
+    );
 });
 
 // controller to return channel list to which user has subscribed
 const getSubscribedChannels = asyncHandler(async (req, res) => {
   const { subscriberId } = req.params;
+  if (!subscriberId) {
+    throw new ApiError(404, "subscriberId not found");
+  }
+  if (!mongoose.Types.ObjectId.isValid(subscriberId)) {
+    throw new ApiError(403, "subscriberId is not valid");
+  }
+
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(subscriberId),
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedChannels",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "channel",
+              foreignField: "_id",
+              as: "channelInfo",
+            },
+          },
+          {
+            $unwind: "$channelInfo",
+          },
+          {
+            $project: {
+              _id: 0,
+              fullname: "$channelInfo.fullname",
+              username: "$channelInfo.username",
+              avatar: "$channelInfo.avatar",
+            },
+          },
+        ],
+      },
+    },
+
+    {
+      $project: {
+        username: 1,
+        fullname: 1,
+        avatar: 1,
+        subscribedChannels: 1,
+      },
+    },
+  ]);
+
+  if (!user || user.length === 0) {
+    throw new ApiError(500, "Something went wrong!");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        user[0].subscribedChannels,
+        "subscription list fetched successfully!"
+      )
+    );
 });
 
 export { toggleSubscription, getUserChannelSubscribers, getSubscribedChannels };
