@@ -442,7 +442,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
       },
     },
   ]);
-  console.log(history);
+  // console.log(history);
 
   return res
     .status(200)
