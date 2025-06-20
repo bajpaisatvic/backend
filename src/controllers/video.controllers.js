@@ -122,12 +122,18 @@ const getVideoById = asyncHandler(async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(videoId)) {
     throw new ApiError(400, "VideoId is invalid");
   }
-  const video = await Video.findById(videoId);
+  const video = await Video.findByIdAndUpdate(
+    new mongoose.Types.ObjectId(videoId),
+    { $inc: { views: 1 } },
+    { new: true }
+  );
 
   if (!video) {
     throw new ApiError(500, "something went wrong while fetching the video");
   }
-
+  await User.findByIdAndUpdate(new mongoose.Types.ObjectId(req.user._id), {
+    $addToSet: { watchHistory: video._id },
+  });
   return res
     .status(200)
     .json(new ApiResponse(200, video, "video fetched successfully"));
