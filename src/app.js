@@ -24,6 +24,7 @@ import { router as tweetRouter } from "./routes/tweet.routes.js";
 import { router as subscriptionRouter } from "./routes/subscription.routes.js";
 import { router as commentRouter } from "./routes/comment.routes.js";
 import { router as playlistRouter } from "./routes/playlist.routes.js";
+import { router as likeRouter } from "./routes/like.routes.js";
 //  declare routes
 
 app.use("/api/v1/users", userRouter);
@@ -33,5 +34,6 @@ app.use("/api/v1/tweet", tweetRouter);
 app.use("/api/v1/subscription", subscriptionRouter);
 app.use("/api/v1/comment", commentRouter);
 app.use("/api/v1/playlist", playlistRouter);
+app.use("/api/v1/like", likeRouter);
 
 export { app };
