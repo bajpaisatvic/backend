@@ -1,119 +1,130 @@
-# 🎮 Video Library Backend API
+# 📻 **Video Library Backend API**
 
-A backend-only RESTful API built with **Node.js**, **Express**, and **MongoDB** that powers a video-sharing platform. The project supports user authentication, video uploads, cloud storage via Cloudinary, and role-based access control.
-
----
-
-## 🚀 Features
-
-- 🔐 **User Authentication**
-  - Register, login, logout
-  - JWT-based access and refresh token management
-  - Password change and secure token storage with cookies
-
-- 📹 **Video Management**
-  - Upload videos with thumbnail (Cloudinary integration)
-  - Fetch all videos with filtering, sorting, and pagination
-  - Edit, delete, and toggle video publish status
-  - Fetch single video by ID
-
-- 👤 **User Profile**
-  - Update profile, avatar, and cover image
-  - Fetch channel data and watch history
-
-- 📁 **File Uploads**
-  - Cloudinary integration for video and image uploads
-  - Automatic cleanup of old files
+This is a Node.js backend application built with **Express.js** and **MongoDB**. The app offers a comprehensive API for a media-sharing platform, supporting features such as videos, playlists, comments, likes, tweets, user management, and subscriptions.
 
 ---
 
-## 🛠️ Tech Stack
+## 🚀 **Features**
 
-- **Backend:** Node.js, Express.js
-- **Database:** MongoDB, Mongoose
-- **Authentication:** JWT (Access & Refresh tokens)
-- **File Storage:** Cloudinary
-- **Others:** Prettier, dotenv, cookie-parser, multer
+✅ **User Management**
+
+* Register, login, logout, refresh tokens
+* Update profile, avatar, cover image
+* Change password
+* View current user details
+* Watch history
+
+✅ **Video Management**
+
+* Publish, update, delete videos
+* Fetch all videos, videos by ID, videos by channel
+* Toggle publish status
+
+✅ **Playlist Management**
+
+* Create, update, delete playlists
+* Add/remove videos in playlists
+* Get playlists by user or ID
+
+✅ **Comment System**
+
+* Add, update, delete comments on videos
+* Fetch comments with pagination
+
+✅ **Like System**
+
+* Toggle likes on videos, comments, and tweets
+* Retrieve liked videos
+
+✅ **Subscription System**
+
+* Subscribe/unsubscribe to channels
+* Get channel subscribers
+* Get subscribed channels
+
+✅ **Tweet Management**
+
+* Post, update, delete tweets
+* Fetch user tweets
+
+✅ **Dashboard Stats**
+
+* Get channel stats (views, videos, likes, subscribers)
+
+✅ **Health Check**
+
+* Simple health check endpoint
 
 ---
 
-## 🗃️ Folder Structure
+## 📂 **Project Structure**
 
 ```
-src/
-├── controllers/        # Business logic (video & user controllers)
-├── routes/             # Route handlers
-├── models/             # Mongoose models
-├── middlewares/        # JWT auth, error handlers
-├── utils/              # Cloudinary, token helpers, responses
-├── db/                 # DB connection logic
-├── constants.js        # Centralized config constants
-├── app.js              # Express app setup
-└── index.js            # Entry point
+├── src/
+│   ├── controllers/      # All API controllers
+│   ├── models/           # Mongoose models
+│   ├── utils/            # Utility functions (e.g., ApiError, asyncHandler)
+│   ├── routes/           # (Assumed) API routes definitions
+├── public/               # Public files (if any)
+├── .gitignore
+├── package.json
+├── .prettierrc
 ```
 
 ---
 
-## 🔑 API Endpoints
+## ⚙️ **Installation**
 
-### 🧑 User Routes
-
-| Method | Endpoint                 | Description                    |
-|--------|--------------------------|--------------------------------|
-| POST   | `/api/v1/user/register`  | Register new user              |
-| POST   | `/api/v1/user/login`     | Login user                     |
-| POST   | `/api/v1/user/logout`    | Logout current user            |
-| GET    | `/api/v1/user/me`        | Get current user               |
-| PATCH  | `/api/v1/user/update`    | Update profile info            |
-| PATCH  | `/api/v1/user/avatar`    | Update profile avatar          |
-| PATCH  | `/api/v1/user/cover`     | Update profile cover image     |
-| POST   | `/api/v1/user/refresh`   | Refresh JWT token              |
-| PATCH  | `/api/v1/user/password`  | Change password                |
-| GET    | `/api/v1/user/channel/:username` | Get channel info         |
-| GET    | `/api/v1/user/history`   | Get watch history              |
-
-### 📹 Video Routes
-
-| Method | Endpoint                 | Description                          |
-|--------|--------------------------|--------------------------------------|
-| GET    | `/api/v1/videos`         | Get all videos with pagination       |
-| GET    | `/api/v1/videos/:id`     | Get single video by ID               |
-| POST   | `/api/v1/videos`         | Upload video with thumbnail          |
-| PATCH  | `/api/v1/videos/:id`     | Update title, description, thumbnail |
-| DELETE | `/api/v1/videos/:id`     | Delete a video                       |
-| PATCH  | `/api/v1/videos/toggle/:id` | Toggle video publish status      |
-
----
-
-## ⚙️ Setup Instructions
-
-1. **Clone the repo**
 ```bash
-git clone https://github.com/your-username/video-library-backend.git
-cd video-library-backend
-```
-
-2. **Install dependencies**
-```bash
+git clone <your-repo-url>
+cd <project-folder>
 npm install
 ```
 
-3. **Environment Variables**
-Create a `.env` file and add the following:
-```env
-PORT=5000
+---
+
+## 🏁 **Run the Server**
+
+```bash
+npm start
+# or
+npm run dev
+```
+
+---
+
+## ⚡ **Environment Variables**
+
+Create a `.env` file:
+
+```
+PORT=3000
 MONGODB_URI=your_mongo_uri
-ACCESS_TOKEN_SECRET=your_access_secret
-REFRESH_TOKEN_SECRET=your_refresh_secret
+ACCESS_TOKEN_SECRET=your_access_token_secret
+REFRESH_TOKEN_SECRET=your_refresh_token_secret
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 ```
 
-4. **Start the server**
-```bash
-npm run dev
-```
+---
 
+## 🔑 **Sample API Endpoints**
 
+| Resource     | Method | Endpoint                              | Description          |
+| ------------ | ------ | ------------------------------------- | -------------------- |
+| User         | POST   | `/api/v1/auth/register`               | Register user        |
+| User         | POST   | `/api/v1/auth/login`                  | Login user           |
+| Video        | POST   | `/api/v1/videos/`                     | Publish a video      |
+| Video        | GET    | `/api/v1/videos/`                     | Get all videos       |
+| Playlist     | POST   | `/api/v1/playlists/`                  | Create playlist      |
+| Comment      | POST   | `/api/v1/comments/:videoId`           | Add comment to video |
+| Like         | POST   | `/api/v1/likes/video/:videoId`        | Toggle video like    |
+| Subscription | POST   | `/api/v1/subscriptions/:channelId`    | Toggle subscription  |
+| Tweet        | POST   | `/api/v1/tweets/`                     | Post a tweet         |
+| Dashboard    | GET    | `/api/v1/dashboard/stats?channelId=X` | Get channel stats    |
+| Health       | GET    | `/api/v1/health`                      | Health check         |
 
+---
+
+##
