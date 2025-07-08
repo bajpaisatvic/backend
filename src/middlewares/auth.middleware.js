@@ -7,7 +7,7 @@ const verifyJWT = asyncHandler(async (req, res, next) => {
   try {
     const token =
       req.cookies?.accessToken ||
-      req.headers("authorization")?.replace("Bearer ", "");
+      req.headers.authorization?.replace("Bearer ", "");
     if (!token) {
       throw new ApiError(401, "User not found");
     }
