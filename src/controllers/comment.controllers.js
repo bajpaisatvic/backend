@@ -43,8 +43,60 @@ const getVideoComments = asyncHandler(async (req, res) => {
       $unwind: "$commentOwner",
     },
     {
+      $lookup: {
+        from: "likes",
+        let: { commentId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$comment", "$$commentId"] },
+                  {
+                    $eq: [
+                      "$likedBy",
+                      new mongoose.Types.ObjectId(req.user._id),
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        as: "likedByUser",
+      },
+    },
+    {
+      $addFields: {
+        liked: { $gt: [{ $size: "$likedByUser" }, 0] },
+      },
+    },
+    {
+      $lookup: {
+        from: "likes",
+        let: { commentId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $eq: ["$comment", "$$commentId"],
+              },
+            },
+          },
+        ],
+        as: "commentLikes",
+      },
+    },
+    {
+      $addFields: {
+        likeCount: { $size: "$commentLikes" },
+      },
+    },
+    {
       $project: {
         content: 1,
+        liked: 1,
+        likeCount: 1,
         owner: {
           fullname: "$commentOwner.fullname",
           username: "$commentOwner.username",

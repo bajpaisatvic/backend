@@ -35,6 +35,7 @@ const createTweet = asyncHandler(async (req, res) => {
 
 const getUserTweets = asyncHandler(async (req, res) => {
   const { userId } = req.params;
+  const currentUserId = req.user?._id;
   if (!mongoose.Types.ObjectId.isValid(userId)) {
     throw new ApiError(400, "UserId is invalid");
   }
@@ -45,11 +46,54 @@ const getUserTweets = asyncHandler(async (req, res) => {
         owner: new mongoose.Types.ObjectId(userId),
       },
     },
+    {
+      $sort: { createdAt: -1 },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+      },
+    },
+    { $unwind: "$owner" },
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "tweet",
+        as: "likes",
+      },
+    },
+    {
+      $addFields: {
+        likeCount: { $size: "$likes" },
+        liked: {
+          $in: [new mongoose.Types.ObjectId(currentUserId), "$likes.likedBy"],
+        },
+      },
+    },
+    {
+      $project: {
+        content: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        likeCount: 1,
+        liked: 1,
+        "owner._id": 1,
+        "owner.username": 1,
+        "owner.fullname": 1,
+        "owner.avatar": 1,
+      },
+    },
   ]);
 
   if (!tweets || tweets.length === 0) {
     throw new ApiError(404, "No tweets found for this user");
   }
+  console.log(tweets);
+
   return res
     .status(200)
     .json(new ApiResponse(200, tweets, "User tweets fetched successfully!"));
@@ -66,25 +110,13 @@ const updateTweet = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Content is required to update tweet");
   }
 
-  const tweet = await Tweet.aggregate([
-    {
-      $match: {
-        owner: new mongoose.Types.ObjectId(req.user._id),
-      },
-    },
-    {
-      $match: {
-        _id: new mongoose.Types.ObjectId(tweetId),
-      },
-    },
-    {
-      $set: {
-        content: content,
-      },
-    },
-  ]);
+  const updatedTweet = await Tweet.findOneAndUpdate(
+    { _id: tweetId, owner: req.user._id },
+    { content },
+    { new: true }
+  );
 
-  if (!tweet || tweet.length === 0) {
+  if (!updatedTweet) {
     throw new ApiError(
       404,
       "Tweet not found or you do not have permission to update this tweet"
@@ -93,7 +125,7 @@ const updateTweet = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, tweet, "Tweet updated successfully!"));
+    .json(new ApiResponse(200, updatedTweet, "Tweet updated successfully!"));
   //TODO: update tweet
 });
 

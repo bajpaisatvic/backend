@@ -67,6 +67,7 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
         title: 1,
         description: 1,
         owner: {
+          id: "$ownerInfo._id",
           fullname: "$ownerInfo.fullname",
           username: "$ownerInfo.username",
           avatar: "$ownerInfo.avatar",
@@ -89,13 +90,14 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
   if (!userPlaylists || userPlaylists.length === 0) {
     throw new ApiError(404, "No playlists found for this user");
   }
+  // console.log(userPlaylists);
 
   return res
     .status(200)
     .json(
       new ApiResponse(
         200,
-        userPlaylists[0],
+        userPlaylists,
         "User Playlistes fetched successfully!"
       )
     );
@@ -145,6 +147,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
             input: "$playlistVideos",
             as: "video",
             in: {
+              id: "$$video._id",
               title: "$$video.title",
               thumbnail: "$$video.thumbnail",
               duration: "$$video.duration",
@@ -159,6 +162,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
   if (!playlist || playlist.length === 0) {
     throw new ApiError(404, "playlist not found");
   }
+  console.log(playlist[0]);
 
   return res
     .status(200)

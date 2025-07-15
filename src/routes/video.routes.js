@@ -8,6 +8,7 @@ import {
   deleteVideo,
   updateVideo,
   togglePublishStatus,
+  getVideosByChannel,
 } from "../controllers/video.controllers.js";
 const router = Router();
 router.use(verifyJWT);
@@ -33,6 +34,8 @@ router
   .get(getVideoById)
   .delete(deleteVideo)
   .patch(upload.single("thumbnail"), updateVideo);
+
+router.route("/channel/:username").get(getVideosByChannel);
 
 router.route("/toggle/publish/:videoId").patch(togglePublishStatus);
 

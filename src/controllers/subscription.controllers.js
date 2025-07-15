@@ -78,6 +78,8 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     throw new ApiError(500, "something went wrong !");
   }
 
+  console.log(user);
+
   return res
     .status(200)
     .json(
@@ -202,7 +204,9 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
           },
           {
             $project: {
+              // _id: 1,
               _id: 0,
+              id: "$channelInfo._id",
               fullname: "$channelInfo.fullname",
               username: "$channelInfo.username",
               avatar: "$channelInfo.avatar",
@@ -225,6 +229,8 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
   if (!user || user.length === 0) {
     throw new ApiError(500, "Something went wrong!");
   }
+
+  console.log(user[0].subscribedChannels);
 
   return res
     .status(200)

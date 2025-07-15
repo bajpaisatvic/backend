@@ -3,6 +3,8 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Video } from "../models/video.models.js";
 import { User } from "../models/user.models.js";
+import { Subscription } from "../models/subscription.models.js";
+import { Like } from "../models/like.models.js";
 import {
   deleteFromCloudinary,
   getCloudinaryPublicId,
@@ -105,6 +107,8 @@ const publishAVideo = asyncHandler(async (req, res) => {
     duration: videofile.duration,
   });
 
+  console.log(video);
+
   if (!video) {
     throw new ApiError(500, "something went wrong while creating video");
   }
@@ -116,27 +120,60 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
 const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  const viewerId = req.user?._id;
   if (!videoId) {
     throw new ApiError(404, "videoId not found");
   }
   if (!mongoose.Types.ObjectId.isValid(videoId)) {
     throw new ApiError(400, "VideoId is invalid");
   }
-  const video = await Video.findByIdAndUpdate(
-    new mongoose.Types.ObjectId(videoId),
-    { $inc: { views: 1 } },
-    { new: true }
-  );
 
-  if (!video) {
-    throw new ApiError(500, "something went wrong while fetching the video");
+  const video = await Video.aggregate([
+    {
+      $match: { _id: new mongoose.Types.ObjectId(videoId) },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "ownerDetails",
+      },
+    },
+    {
+      $unwind: "$ownerDetails",
+    },
+    {
+      $addFields: {
+        "ownerDetails.password": "$$REMOVE", // remove sensitive fields
+      },
+    },
+  ]);
+
+  if (!video || !video[0]) {
+    throw new ApiError(404, "Video not found");
   }
-  await User.findByIdAndUpdate(new mongoose.Types.ObjectId(req.user._id), {
-    $addToSet: { watchHistory: video._id },
+
+  const isSubscribed = await Subscription.exists({
+    channel: new mongoose.Types.ObjectId(video[0].ownerDetails._id),
+    subscriber: new mongoose.Types.ObjectId(viewerId),
   });
+  const isLiked = await Like.exists({
+    likedBy: new mongoose.Types.ObjectId(viewerId),
+    video: new mongoose.Types.ObjectId(videoId),
+  });
+
+  video[0].isLiked = !!isLiked;
+  await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
+  await User.findByIdAndUpdate(req.user._id, {
+    $addToSet: { watchhistory: videoId },
+  });
+  video[0].isSubscribed = !!isSubscribed;
+  // console.log(video[0]);
+
   return res
     .status(200)
-    .json(new ApiResponse(200, video, "video fetched successfully"));
+    .json(new ApiResponse(200, video[0], "video fetched successfully"));
   //TODO: get video by id
 });
 
@@ -156,33 +193,36 @@ const updateVideo = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Video not found");
   }
 
-  const thumbnailLocalPath = req.file?.path;
+  let thumbnailUrl = video.thumbnail;
 
-  if (!thumbnailLocalPath) {
-    throw new ApiError(
-      500,
-      "something went wrong while getting thumbnail path"
-    );
+  if (req.file?.path) {
+    const uploadedThumb = await uploadOnCloudinary(req.file.path);
+    if (!uploadedThumb) {
+      throw new ApiError(500, "Failed to upload new thumbnail");
+    }
+
+    await deleteFromCloudinary(getCloudinaryPublicId(video.thumbnail));
+    thumbnailUrl = uploadedThumb.url;
   }
 
-  const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
+  // const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
 
-  if (!thumbnail) {
-    throw new ApiError(
-      500,
-      "something went wrong while uploading file on cloudinary"
-    );
-  }
-  const oldThumbnail = video.thumbnail;
+  // if (!thumbnail) {
+  //   throw new ApiError(
+  //     500,
+  //     "something went wrong while uploading file on cloudinary"
+  //   );
+  // }
+  // const oldThumbnail = video.thumbnail;
 
-  await deleteFromCloudinary(getCloudinaryPublicId(oldThumbnail));
+  // await deleteFromCloudinary(getCloudinaryPublicId(oldThumbnail));
 
   const updatedVideo = await Video.findByIdAndUpdate(
     videoId,
     {
       title: title === "" ? video.title : title,
       description: description === "" ? video.description : description,
-      thumbnail: thumbnail.url,
+      thumbnail: thumbnailUrl,
     },
     { new: true }
   );
@@ -247,6 +287,16 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     );
 });
 
+const getVideosByChannel = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+  const user = await User.findOne({ username });
+  if (!user) throw new ApiError(404, "Channel not found");
+
+  const videos = await Video.find({ owner: user._id });
+  console.log(videos);
+
+  return res.status(200).json(new ApiResponse(200, videos, "Videos fetched"));
+});
 export {
   getAllVideos,
   publishAVideo,
@@ -254,4 +304,5 @@ export {
   updateVideo,
   deleteVideo,
   togglePublishStatus,
+  getVideosByChannel,
 };

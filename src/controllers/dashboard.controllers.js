@@ -7,7 +7,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asynchandler.js";
 
 const getChannelStats = asyncHandler(async (req, res) => {
-  const { channelId } = req.query || req.user._id;
+  const channelId = req.query.channelId || req.user._id;
   if (!mongoose.isValidObjectId(channelId)) {
     throw new ApiError(400, "Invalid channel ID");
   }

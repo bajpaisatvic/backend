@@ -351,7 +351,7 @@ const getUserChannel = asyncHandler(async (req, res) => {
       $lookup: {
         from: "subscriptions",
         localField: "_id",
-        foreignField: "channels",
+        foreignField: "channel",
         as: "subscribers",
       },
     },
@@ -359,7 +359,7 @@ const getUserChannel = asyncHandler(async (req, res) => {
       $lookup: {
         from: "subscriptions",
         localField: "_id",
-        foreignField: "subscribers",
+        foreignField: "subscriber",
         as: "subscribedTo",
       },
     },
@@ -404,53 +404,55 @@ const getUserChannel = asyncHandler(async (req, res) => {
 });
 
 const getWatchHistory = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select("watchhistory");
+  console.log(user);
+
+  if (!user || !user.watchhistory || user.watchhistory.length === 0) {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, [], "No watch history found"));
+  }
+
+  console.log("not break");
+
   const history = await Video.aggregate([
     {
       $match: {
-        _id: new mongoose.Types.ObjectId(req.user?._id),
+        _id: {
+          $in: user.watchhistory.map((id) => new mongoose.Types.ObjectId(id)),
+        },
       },
     },
     {
       $lookup: {
-        from: "videos",
-        localField: "watchhitory",
+        from: "users",
+        localField: "owner",
         foreignField: "_id",
-        as: "watchHistory",
-        pipeline: [
-          {
-            $lookup: {
-              from: "users",
-              localField: "owner",
-              foreignField: "_id",
-              as: "owner",
-              pipeline: [
-                {
-                  $project: {
-                    username: 1,
-                    fullname: 1,
-                    avatar: 1,
-                  },
-                },
-              ],
-            },
-          },
-        ],
+        as: "owner",
       },
     },
     {
-      $addFields: {
-        owner: {
-          $first: "$owner",
-        },
+      $unwind: "$owner",
+    },
+    {
+      $project: {
+        thumbnail: 1,
+        title: 1,
+        description: 1,
+        duration: 1,
+        views: 1,
+        "owner.username": 1,
+        "owner.fullname": 1,
+        "owner.avatar": 1,
       },
     },
   ]);
-  // console.log(history);
+  console.log(history);
 
   return res
     .status(200)
     .json(
-      new ApiResponse(200, history, "users watch history fetched successfully")
+      new ApiResponse(200, history, "Users watch history fetched successfully")
     );
 });
 
