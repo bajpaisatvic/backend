@@ -3,6 +3,19 @@
 This is a Node.js backend application built with **Express.js** and **MongoDB**. The app offers a comprehensive API for a media-sharing platform, supporting features such as videos, playlists, comments, likes, tweets, user management, and subscriptions.
 
 ---
+## 🚀 Live Site
+
+👉 [Visit Deployed Website](https://vlib-frontend.vercel.app/)
+
+---
+
+## 🔗 Frontend Repository
+
+Looking for the frontend code?
+
+👉 [Frontend GitHub Repo](https://github.com/bajpaisatvic/VLIB-frontend)
+
+---
 
 ## 🚀 **Features**
 
